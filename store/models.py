@@ -31,11 +31,10 @@ class Category(models.Model):
 class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=150)
-    image = models.ImageField(upload_to='upload/', blank=True, null=True)
     description = models.TextField()
+    image = models.ImageField(upload_to='upload/', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
-    
 
     owner = models.ForeignKey(
         User,
@@ -77,6 +76,11 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart {self.id} - {self.user}"
 
+    # Actualizar
+    @property
+    def total(self):
+        return sum(item.subtotal for item in self.cartitem_set.all())
+
 
 # =========================
 # 🧾 CartItem (tabla intermedia)
@@ -92,22 +96,6 @@ class CartItem(models.Model):
     class Meta:
         unique_together = ('cart', 'product')
 
-    def __str__(self):
-        return f"{self.product} x {self.quantity}"
-    
-
-class CartItem(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-
-    quantity = models.PositiveIntegerField(default=1)
-
-    class Meta:
-        unique_together = ('cart', 'product')
-
-   
     # Actualizar
     @property
     def subtotal(self):
@@ -115,28 +103,3 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.product} x {self.quantity}"
-    
-class Cart(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='carts'
-    )  # 1:N
-
-    products = models.ManyToManyField(
-        Product,
-        through='CartItem',
-        related_name='carts'
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Cart {self.id} - {self.user}"
-    
-    # Actualizar    
-    @property
-    def total(self):
-        return sum(item.subtotal for item in self.cartitem_set.all())
